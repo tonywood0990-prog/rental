@@ -8,6 +8,17 @@ import Link from 'next/link'
 import { Listing } from '@/lib/types'
 import { formatPrice, TYPE_LABELS, UB_CENTER, UB_ZOOM } from '@/lib/utils'
 
+// Properly removes the Leaflet instance on unmount so re-mounting works
+function MapCleanup() {
+  const map = useMap()
+  useEffect(() => {
+    return () => {
+      map.remove()
+    }
+  }, [map])
+  return null
+}
+
 // Fix default Leaflet marker icons
 function fixLeafletIcons() {
   delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -97,6 +108,7 @@ export function MultiListingMap({ listings, activeId, onPinClick }: MultiMapProp
       className="w-full h-full"
       scrollWheelZoom
     >
+      <MapCleanup />
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -157,6 +169,7 @@ export function SingleListingMap({ lat, lng, title }: SingleMapProps) {
       className="w-full h-full"
       scrollWheelZoom={false}
     >
+      <MapCleanup />
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -188,6 +201,7 @@ export function PlacePinMap({ lat, lng, onPlace }: PlacePinMapProps) {
       className="w-full h-full cursor-crosshair"
       scrollWheelZoom
     >
+      <MapCleanup />
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
