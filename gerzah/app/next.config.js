@@ -7,8 +7,6 @@ const nextConfig = {
       { protocol: 'https', hostname: 'supabase.co' },
     ],
   },
-  // Leaflet requires this to avoid SSR issues
-  transpilePackages: ['leaflet', 'react-leaflet'],
 }
 
 module.exports = nextConfig

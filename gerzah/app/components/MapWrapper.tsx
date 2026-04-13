@@ -1,38 +1,8 @@
 'use client'
 
-import dynamic from 'next/dynamic'
+// Pigeon Maps is pure React — no dynamic import / ssr:false needed
+import { MultiListingMap, SingleListingMap, PlacePinMap } from './MapClient'
 import { Listing } from '@/lib/types'
-
-// All map components must be dynamically imported with ssr: false
-// because Leaflet directly accesses window/document
-
-const { MultiListingMap, SingleListingMap, PlacePinMap } = {
-  MultiListingMap: dynamic(
-    () => import('./MapClient').then((m) => m.MultiListingMap),
-    { ssr: false, loading: () => <MapLoading /> }
-  ),
-  SingleListingMap: dynamic(
-    () => import('./MapClient').then((m) => m.SingleListingMap),
-    { ssr: false, loading: () => <MapLoading /> }
-  ),
-  PlacePinMap: dynamic(
-    () => import('./MapClient').then((m) => m.PlacePinMap),
-    { ssr: false, loading: () => <MapLoading /> }
-  ),
-}
-
-function MapLoading() {
-  return (
-    <div className="w-full h-full flex items-center justify-center bg-gray-50 rounded-card">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
-        <span className="text-sm text-gray-500">Газрын зураг ачааллаж байна...</span>
-      </div>
-    </div>
-  )
-}
-
-// ─── Exports ───────────────────────────────────────────────────────────────
 
 interface MultiMapWrapperProps {
   listings: Listing[]

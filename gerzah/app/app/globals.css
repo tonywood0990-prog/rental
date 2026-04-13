@@ -26,22 +26,9 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Leaflet overrides */
-.leaflet-container {
+/* Map overrides */
+.pigeon-map {
   border-radius: 12px;
-  z-index: 0;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-}
-
-.leaflet-popup-content-wrapper {
-  border-radius: 10px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.12);
-}
-
-.leaflet-popup-content {
-  margin: 10px 14px;
-  font-size: 13px;
-  line-height: 1.5;
 }
 
 /* Custom scrollbar */

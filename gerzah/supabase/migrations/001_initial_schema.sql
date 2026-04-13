@@ -1,13 +1,23 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- GerZah (Гэр Зах) — Initial Schema
--- Run this in your Supabase SQL editor
 -- ─────────────────────────────────────────────────────────────────────────────
 
--- ── Enums ────────────────────────────────────────────────────────────────────
+-- ── Enums (safe create) ───────────────────────────────────────────────────────
 
-CREATE TYPE listing_type_enum AS ENUM ('rent', 'sale');
-CREATE TYPE property_type_enum AS ENUM ('apartment', 'house', 'land', 'office');
-CREATE TYPE price_period_enum AS ENUM ('month', 'total');
+DO $$ BEGIN
+  CREATE TYPE listing_type_enum AS ENUM ('rent', 'sale');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE property_type_enum AS ENUM ('apartment', 'house', 'land', 'office');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE price_period_enum AS ENUM ('month', 'total');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ── Profiles ─────────────────────────────────────────────────────────────────
 
@@ -21,11 +31,13 @@ CREATE TABLE IF NOT EXISTS profiles (
 
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
--- Anyone can read profiles
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON profiles;
+DROP POLICY IF EXISTS "Users can insert their own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can update their own profile" ON profiles;
+
 CREATE POLICY "Public profiles are viewable by everyone"
   ON profiles FOR SELECT USING (true);
 
--- Users can insert/update their own profile
 CREATE POLICY "Users can insert their own profile"
   ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
 
@@ -46,7 +58,8 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE TRIGGER on_auth_user_created
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 
@@ -76,7 +89,6 @@ CREATE TABLE IF NOT EXISTS listings (
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Updated_at trigger
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN
@@ -85,25 +97,27 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS set_listings_updated_at ON listings;
 CREATE TRIGGER set_listings_updated_at
   BEFORE UPDATE ON listings
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 ALTER TABLE listings ENABLE ROW LEVEL SECURITY;
 
--- Anyone can read active listings
+DROP POLICY IF EXISTS "Active listings are viewable by everyone" ON listings;
+DROP POLICY IF EXISTS "Authenticated users can create listings" ON listings;
+DROP POLICY IF EXISTS "Users can update their own listings" ON listings;
+DROP POLICY IF EXISTS "Users can delete their own listings" ON listings;
+
 CREATE POLICY "Active listings are viewable by everyone"
   ON listings FOR SELECT USING (is_active = true OR auth.uid() = user_id);
 
--- Only authenticated users can create listings
 CREATE POLICY "Authenticated users can create listings"
   ON listings FOR INSERT WITH CHECK (auth.uid() = user_id);
 
--- Only owner can update their listing
 CREATE POLICY "Users can update their own listings"
   ON listings FOR UPDATE USING (auth.uid() = user_id);
 
--- Only owner can delete their listing
 CREATE POLICY "Users can delete their own listings"
   ON listings FOR DELETE USING (auth.uid() = user_id);
 
@@ -116,7 +130,3 @@ CREATE INDEX IF NOT EXISTS idx_listings_is_active ON listings(is_active);
 CREATE INDEX IF NOT EXISTS idx_listings_user_id ON listings(user_id);
 CREATE INDEX IF NOT EXISTS idx_listings_created_at ON listings(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_listings_price ON listings(price);
-
--- ── Storage Bucket (run separately or via Supabase dashboard) ────────────────
--- Create a public bucket named "listing-images" in your Supabase Storage settings
--- with the following policy: anyone can read, authenticated users can upload

@@ -1,94 +1,128 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
+import { useEffect, useRef, useState } from 'react'
+import { Map, Marker, Overlay } from 'pigeon-maps'
+import { osm } from 'pigeon-maps/providers'
 import Link from 'next/link'
 import { Listing } from '@/lib/types'
 import { formatPrice, TYPE_LABELS, UB_CENTER, UB_ZOOM } from '@/lib/utils'
 
-// Properly removes the Leaflet instance on unmount so re-mounting works
-function MapCleanup() {
-  const map = useMap()
+// ─── Responsive map wrapper ────────────────────────────────────────────────
+// pigeon-maps needs explicit pixel width/height — we measure the container
+
+function ResponsiveMap({ children, ...props }: React.ComponentProps<typeof Map>) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [dims, setDims] = useState({ width: 0, height: 0 })
+
   useEffect(() => {
-    return () => {
-      map.remove()
-    }
-  }, [map])
-  return null
+    if (!containerRef.current) return
+    const ro = new ResizeObserver((entries) => {
+      const { width, height } = entries[0].contentRect
+      setDims({ width: Math.round(width), height: Math.round(height) })
+    })
+    ro.observe(containerRef.current)
+    return () => ro.disconnect()
+  }, [])
+
+  return (
+    <div ref={containerRef} style={{ width: '100%', height: '100%' }}>
+      {dims.height > 0 && (
+        <Map
+          provider={osm}
+          width={dims.width}
+          height={dims.height}
+          {...props}
+        >
+          {children}
+        </Map>
+      )}
+    </div>
+  )
 }
 
-// Fix default Leaflet marker icons
-function fixLeafletIcons() {
-  delete (L.Icon.Default.prototype as any)._getIconUrl
-  L.Icon.Default.mergeOptions({
-    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-  })
+// ─── Pin components ────────────────────────────────────────────────────────
+
+function RentPin({ active }: { active?: boolean }) {
+  const size = active ? 36 : 28
+  return (
+    <div style={{
+      width: size, height: size,
+      borderRadius: '50% 50% 50% 0',
+      background: '#2563EB',
+      transform: 'rotate(-45deg)',
+      border: '2px solid white',
+      boxShadow: active ? '0 4px 12px rgba(37,99,235,0.5)' : '0 2px 6px rgba(0,0,0,0.25)',
+      transition: 'all 0.2s',
+      cursor: 'pointer',
+    }} />
+  )
 }
 
-function createColoredPin(color: string, isActive: boolean) {
-  const size = isActive ? 44 : 36
-  const shadow = isActive ? '0 4px 12px rgba(0,0,0,0.35)' : '0 2px 6px rgba(0,0,0,0.25)'
-  return L.divIcon({
-    html: `<div style="
-      width:${size}px;height:${size}px;
-      border-radius:50% 50% 50% 0;
-      background:${color};
-      transform:rotate(-45deg);
-      border:3px solid white;
-      box-shadow:${shadow};
-      transition:all 0.2s;
-    "></div>`,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size],
-    popupAnchor: [0, -size],
-    className: '',
-  })
+function SalePin({ active }: { active?: boolean }) {
+  const size = active ? 36 : 28
+  return (
+    <div style={{
+      width: size, height: size,
+      borderRadius: '50% 50% 50% 0',
+      background: '#16A34A',
+      transform: 'rotate(-45deg)',
+      border: '2px solid white',
+      boxShadow: active ? '0 4px 12px rgba(22,163,74,0.5)' : '0 2px 6px rgba(0,0,0,0.25)',
+      transition: 'all 0.2s',
+      cursor: 'pointer',
+    }} />
+  )
 }
 
-function createSinglePin() {
-  return L.divIcon({
-    html: `<div style="
-      width:40px;height:40px;
-      border-radius:50% 50% 50% 0;
-      background:#C8102E;
-      transform:rotate(-45deg);
-      border:3px solid white;
-      box-shadow:0 4px 12px rgba(200,16,46,0.4);
-    "></div>`,
-    iconSize: [40, 40],
-    iconAnchor: [20, 40],
-    popupAnchor: [0, -44],
-    className: '',
-  })
+function RedPin() {
+  return (
+    <div style={{
+      width: 36, height: 36,
+      borderRadius: '50% 50% 50% 0',
+      background: '#C8102E',
+      transform: 'rotate(-45deg)',
+      border: '3px solid white',
+      boxShadow: '0 4px 12px rgba(200,16,46,0.4)',
+    }} />
+  )
 }
 
-// Auto-center map component
-function MapCenter({ lat, lng }: { lat: number; lng: number }) {
-  const map = useMap()
-  useEffect(() => {
-    map.setView([lat, lng], 15, { animate: true })
-  }, [lat, lng, map])
-  return null
+// ─── Listing popup ─────────────────────────────────────────────────────────
+
+function ListingPopup({ listing, onClose }: { listing: Listing; onClose: () => void }) {
+  const isRent = listing.listing_type === 'rent'
+  return (
+    <div style={{
+      background: 'white', borderRadius: 10,
+      boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
+      padding: '12px 14px', minWidth: 180, position: 'relative',
+    }}>
+      <button onClick={onClose} style={{
+        position: 'absolute', top: 6, right: 8,
+        background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#9CA3AF',
+      }}>×</button>
+      <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 4, color: isRent ? '#2563EB' : '#16A34A' }}>
+        {TYPE_LABELS[listing.listing_type]}
+      </div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: '#1A1A2E', lineHeight: 1.3, marginBottom: 6 }}>
+        {listing.title}
+      </div>
+      <div style={{ fontSize: 15, fontWeight: 800, color: '#C8102E', marginBottom: 10 }}>
+        {formatPrice(listing.price, listing.price_period)}
+      </div>
+      <Link href={`/listings/${listing.id}`} style={{
+        display: 'block', textAlign: 'center',
+        background: '#C8102E', color: 'white',
+        borderRadius: 6, padding: '6px 12px',
+        fontSize: 12, fontWeight: 600, textDecoration: 'none',
+      }}>
+        Дэлгэрэнгүй
+      </Link>
+    </div>
+  )
 }
 
-// Click to place pin component
-function ClickToPlace({ onPlace }: { onPlace: (lat: number, lng: number) => void }) {
-  const map = useMap()
-  useEffect(() => {
-    const handler = (e: L.LeafletMouseEvent) => {
-      onPlace(e.latlng.lat, e.latlng.lng)
-    }
-    map.on('click', handler)
-    return () => { map.off('click', handler) }
-  }, [map, onPlace])
-  return null
-}
-
-// ─── Multi-listing map (browse page) ───────────────────────────────────────
+// ─── Multi-listing map (browse page) ──────────────────────────────────────
 
 interface MultiMapProps {
   listings: Listing[]
@@ -97,127 +131,60 @@ interface MultiMapProps {
 }
 
 export function MultiListingMap({ listings, activeId, onPinClick }: MultiMapProps) {
-  useEffect(() => { fixLeafletIcons() }, [])
-
+  const [popupId, setPopupId] = useState<string | null>(null)
   const withCoords = listings.filter((l) => l.lat && l.lng)
+  const popupListing = withCoords.find((l) => l.id === popupId)
 
   return (
-    <MapContainer
-      center={UB_CENTER}
-      zoom={UB_ZOOM}
-      className="w-full h-full"
-      scrollWheelZoom
-    >
-      <MapCleanup />
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+    <ResponsiveMap center={UB_CENTER} zoom={UB_ZOOM}>
       {withCoords.map((listing) => {
-        const isRent = listing.listing_type === 'rent'
-        const color = isRent ? '#2563EB' : '#16A34A'
         const isActive = listing.id === activeId
+        const anchor: [number, number] = [listing.lat!, listing.lng!]
         return (
-          <Marker
-            key={listing.id}
-            position={[listing.lat!, listing.lng!]}
-            icon={createColoredPin(color, isActive)}
-            eventHandlers={{ click: () => onPinClick(listing.id) }}
-            zIndexOffset={isActive ? 1000 : 0}
-          >
-            <Popup>
-              <div className="min-w-[180px]">
-                <div className={`text-xs font-bold mb-1 ${isRent ? 'text-blue-600' : 'text-green-600'}`}>
-                  {TYPE_LABELS[listing.listing_type]}
-                </div>
-                <div className="font-bold text-sm text-gray-900 leading-tight mb-1">
-                  {listing.title}
-                </div>
-                <div className="text-primary font-extrabold text-base mb-2">
-                  {formatPrice(listing.price, listing.price_period)}
-                </div>
-                <Link
-                  href={`/listings/${listing.id}`}
-                  className="block text-center bg-primary text-white text-xs font-semibold py-1.5 px-3 rounded-md hover:bg-primary-600 transition-colors"
-                >
-                  Дэлгэрэнгүй
-                </Link>
-              </div>
-            </Popup>
-          </Marker>
+          <Overlay key={listing.id} anchor={anchor} offset={[14, 28]}>
+            <div onClick={() => { onPinClick(listing.id); setPopupId(listing.id) }}>
+              {listing.listing_type === 'rent'
+                ? <RentPin active={isActive} />
+                : <SalePin active={isActive} />}
+            </div>
+          </Overlay>
         )
       })}
-    </MapContainer>
+      {popupListing?.lat && popupListing?.lng && (
+        <Overlay anchor={[popupListing.lat, popupListing.lng]} offset={[-90, 140]}>
+          <ListingPopup listing={popupListing} onClose={() => setPopupId(null)} />
+        </Overlay>
+      )}
+    </ResponsiveMap>
   )
 }
 
-// ─── Single listing map (detail page) ──────────────────────────────────────
+// ─── Single listing map (detail page) ─────────────────────────────────────
 
-interface SingleMapProps {
-  lat: number
-  lng: number
-  title: string
-}
-
-export function SingleListingMap({ lat, lng, title }: SingleMapProps) {
-  useEffect(() => { fixLeafletIcons() }, [])
-
+export function SingleListingMap({ lat, lng, title }: { lat: number; lng: number; title: string }) {
   return (
-    <MapContainer
-      center={[lat, lng]}
-      zoom={15}
-      className="w-full h-full"
-      scrollWheelZoom={false}
-    >
-      <MapCleanup />
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      <Marker position={[lat, lng]} icon={createSinglePin()}>
-        <Popup>
-          <div className="font-semibold text-sm text-gray-800">{title}</div>
-        </Popup>
-      </Marker>
-    </MapContainer>
+    <ResponsiveMap center={[lat, lng]} zoom={15} mouseEvents={false} touchEvents={false}>
+      <Overlay anchor={[lat, lng]} offset={[18, 36]}>
+        <RedPin />
+      </Overlay>
+    </ResponsiveMap>
   )
 }
 
-// ─── Pin placement map (post listing form) ─────────────────────────────────
+// ─── Click-to-place map (post listing form) ────────────────────────────────
 
-interface PlacePinMapProps {
-  lat: number | null
-  lng: number | null
-  onPlace: (lat: number, lng: number) => void
-}
-
-export function PlacePinMap({ lat, lng, onPlace }: PlacePinMapProps) {
-  useEffect(() => { fixLeafletIcons() }, [])
-
+export function PlacePinMap({ lat, lng, onPlace }: { lat: number | null; lng: number | null; onPlace: (lat: number, lng: number) => void }) {
   return (
-    <MapContainer
+    <ResponsiveMap
       center={UB_CENTER}
       zoom={UB_ZOOM}
-      className="w-full h-full cursor-crosshair"
-      scrollWheelZoom
+      onClick={({ latLng }: { latLng: [number, number] }) => onPlace(latLng[0], latLng[1])}
     >
-      <MapCleanup />
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      <ClickToPlace onPlace={onPlace} />
       {lat !== null && lng !== null && (
-        <>
-          <Marker position={[lat, lng]} icon={createSinglePin()}>
-            <Popup>
-              <div className="text-sm font-medium">Байршил тогтоогдлоо</div>
-              <div className="text-xs text-gray-500 mt-0.5">{lat.toFixed(6)}, {lng.toFixed(6)}</div>
-            </Popup>
-          </Marker>
-          <MapCenter lat={lat} lng={lng} />
-        </>
+        <Overlay anchor={[lat, lng]} offset={[18, 36]}>
+          <RedPin />
+        </Overlay>
       )}
-    </MapContainer>
+    </ResponsiveMap>
   )
 }
