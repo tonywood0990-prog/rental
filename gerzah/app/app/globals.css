@@ -1,0 +1,147 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Mongolian&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #C8102E;
+  --secondary: #1A1A2E;
+  --accent: #F5A623;
+  --background: #F8F6F1;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--background);
+  font-family: 'Plus Jakarta Sans', 'Noto Sans Mongolian', sans-serif;
+  color: var(--secondary);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Leaflet overrides */
+.leaflet-container {
+  border-radius: 12px;
+  z-index: 0;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 10px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+}
+
+.leaflet-popup-content {
+  margin: 10px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F8F6F1;
+}
+::-webkit-scrollbar-thumb {
+  background: #D4C5B0;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #C8102E;
+}
+
+/* Map pin styles */
+.map-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  border: 2px solid white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.map-pin:hover {
+  transform: rotate(-45deg) scale(1.15);
+}
+
+.map-pin-inner {
+  transform: rotate(45deg);
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+}
+
+/* Listing card active state */
+.listing-card-active {
+  border: 2px solid #C8102E !important;
+  box-shadow: 0 0 0 3px rgba(200,16,46,0.15) !important;
+}
+
+/* Price badge */
+.price-badge-rent {
+  background: linear-gradient(135deg, #2563EB, #1D4ED8);
+}
+.price-badge-sale {
+  background: linear-gradient(135deg, #16A34A, #15803D);
+}
+
+/* Step indicator */
+.step-active {
+  background: #C8102E;
+  color: white;
+}
+.step-done {
+  background: #16A34A;
+  color: white;
+}
+.step-pending {
+  background: #E5E7EB;
+  color: #9CA3AF;
+}
+
+/* Ornamental border using CSS (references Mongolian pattern aesthetic) */
+.ornamental-border {
+  position: relative;
+}
+.ornamental-border::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #C8102E 0%, #F5A623 50%, #C8102E 100%);
+  border-radius: 12px 12px 0 0;
+}
+
+/* Image gallery */
+.gallery-thumb {
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.gallery-thumb:hover {
+  opacity: 0.85;
+  transform: scale(0.97);
+}
+.gallery-thumb-active {
+  ring: 2px solid #C8102E;
+  opacity: 1;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
