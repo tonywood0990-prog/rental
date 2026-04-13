@@ -204,8 +204,7 @@ export default function PostPage() {
         {/* Form card */}
         <div className="bg-white rounded-card shadow-card p-6 md:p-8">
           {/* ── Step 1 ── */}
-          {step === 1 && (
-            <div className="space-y-5">
+          <div className={step === 1 ? 'space-y-5' : 'hidden'}>
               <h2 className="text-lg font-bold text-secondary">Үндсэн мэдээлэл</h2>
 
               <div className="grid grid-cols-2 gap-3">
@@ -271,12 +270,10 @@ export default function PostPage() {
                 />
                 {errors.description && <p className="mt-1 text-xs text-red-500">{errors.description}</p>}
               </div>
-            </div>
-          )}
+          </div>
 
           {/* ── Step 2 ── */}
-          {step === 2 && (
-            <div className="space-y-5">
+          <div className={step === 2 ? 'space-y-5' : 'hidden'}>
               <h2 className="text-lg font-bold text-secondary">Дэлгэрэнгүй мэдээлэл</h2>
 
               {/* Price */}
@@ -409,12 +406,10 @@ export default function PostPage() {
                   className="w-full px-4 py-3 border border-gray-200 rounded-input text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 />
               </div>
-            </div>
-          )}
+          </div>
 
           {/* ── Step 3 ── */}
-          {step === 3 && (
-            <div className="space-y-5">
+          <div className={step === 3 ? 'space-y-5' : 'hidden'}>
               <h2 className="text-lg font-bold text-secondary">Байршил & Зураг</h2>
 
               {/* Map */}
@@ -489,8 +484,7 @@ export default function PostPage() {
                   </div>
                 )}
               </div>
-            </div>
-          )}
+          </div>
 
           {/* Navigation */}
           <div className="flex justify-between mt-8 pt-6 border-t border-gray-100">
